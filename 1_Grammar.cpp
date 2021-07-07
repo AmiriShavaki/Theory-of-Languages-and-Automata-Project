@@ -6,6 +6,8 @@
 #include <queue>
 #include <set>
 
+#include <unistd.h>
+
 using namespace std;
 
 template <int N>
@@ -23,6 +25,7 @@ public:
     bool removeUnterminatable();
     void removeDuplicate();
     void removeInvalidProdRules(); // Remove prodoction rules with at least one undefined variable
+    void toCNF(); // (Chomskey Normal Form)
 
     template <int M>
     friend istream& operator >> (istream& in, Grammar < M > &g);
@@ -146,7 +149,6 @@ bool Grammar<N>::removeUnterminatable() {
                 if (it -> second[i].size() < 3) {
                     terminatable.insert(it -> first);
                     flg = true;
-                    res = true;
                     break;
                 }
                 bool isTerminatable = true;
@@ -160,7 +162,6 @@ bool Grammar<N>::removeUnterminatable() {
                 if (isTerminatable) {
                     terminatable.insert(it -> first);
                     flg = true;
-                    res = true;
                     break;
                 }
 
@@ -172,6 +173,7 @@ bool Grammar<N>::removeUnterminatable() {
     for (it = prodRules.begin(); it != prodRules.end(); it++) {
         if (terminatable.find(it -> first) == terminatable.end()) {
             toDel.push_back(it -> first);
+            res = true;
         }
     }
     for (int i = 0; i < toDel.size(); i++) {
@@ -223,6 +225,20 @@ void Grammar<N>::removeInvalidProdRules() {
 }
 
 template <int N>
+void Grammar<N>::toCNF() {
+    bool flg = true;
+    while (flg) {
+        flg = false;
+        if (this -> removeNullable() || this -> removeUnitProd() || this -> removeUnreachable() || this -> removeUnterminatable()) {
+            flg = true;
+            this -> removeDuplicate();
+            this -> removeInvalidProdRules();
+            continue;
+        }
+    }
+}
+
+template <int N>
 istream& operator >> (istream& in, Grammar < N > &g) {
     int n;
     cin >> n;
@@ -260,8 +276,7 @@ istream& operator >> (istream& in, Grammar < N > &g) {
 int main() {
     Grammar < 10000 > g; // 10000 means maximum number of production rules
     cin >> g;
-    g.removeUnterminatable();
-    g.removeInvalidProdRules();
+    g.toCNF();
     g.display();
 
     string s;
