@@ -2,6 +2,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
@@ -14,6 +15,8 @@ private:
 public:
     void display();
     bool removeNullable(); // Returns true if something modified
+    bool removeUnitProd(); // Returns true if something modified
+    void removeDuplicate();
 
     template <int M>
     friend istream& operator >> (istream& in, Grammar < M > &g);
@@ -46,6 +49,9 @@ bool Grammar<N>::removeNullable() {
                             if (it2 -> second[j].substr(k, 3) == it -> first) {
                                 it2 -> second.push_back(it2 -> second[j]);
                                 it2 -> second.back().erase(k, 3);
+                                if (it2 -> second.back().empty()) {
+                                    it2 -> second.back() = "#";
+                                }
                                 break;
                             }
                         }
@@ -56,6 +62,41 @@ bool Grammar<N>::removeNullable() {
         }
     }
     return false;
+}
+
+template <int N>
+bool Grammar<N>::removeUnitProd() {
+    map < string, vector < string > >::iterator it;
+    for (it = prodRules.begin(); it != prodRules.end(); it++) {
+        for (int i = it -> second.size() - 1; i >= 0 ; i--) {
+            if (it -> second[i].size() == 3 && it -> second[i][0] == '<' && it -> second[i][2] == '>') {
+                if (it -> second[i][1] == it -> first[1]) { // Remove without sideefect
+                    it -> second.erase(it -> second.begin() + i);
+                } else { // Replace rightside of the prudoction with rightside of the removed variable
+                    for (int j = 0; j < prodRules[it -> second[i]].size(); j++) {
+                        it -> second.push_back(prodRules[it -> second[i]][j]);
+                    }
+                    it -> second.erase(it -> second.begin() + i);
+                }
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+template <int N>
+void Grammar<N>::removeDuplicate() {
+    map < string, vector < string > >::iterator it;
+    for (it = prodRules.begin(); it != prodRules.end(); it++) {
+
+        vector < string >::iterator it2;
+        vector < string >::iterator itEnd = it -> second.end();
+        for (it2 = it -> second.begin(); it2 != itEnd; it2++) {
+            itEnd = remove(it2 + 1, itEnd, *it2);
+        }
+        it -> second.erase(itEnd, it -> second.end());
+    }
 }
 
 template <int N>
@@ -95,9 +136,6 @@ istream& operator >> (istream& in, Grammar < N > &g) {
 int main() {
     Grammar < 10000 > g; // 10000 means maximum number of production rules
     cin >> g;
-    g.display();
-    g.removeNullable();
-    g.display();
 
     string s;
     cin >> s;
