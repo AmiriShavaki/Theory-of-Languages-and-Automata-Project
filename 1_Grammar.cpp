@@ -3,6 +3,8 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <queue>
+#include <set>
 
 using namespace std;
 
@@ -12,10 +14,12 @@ private:
     string rawProdRules[N];
     int n; // Number of production rules
     map < string, vector < string > > prodRules;
+    string stV;
 public:
     void display();
     bool removeNullable(); // Returns true if something modified
     bool removeUnitProd(); // Returns true if something modified
+    bool removeUnreachable();
     void removeDuplicate();
 
     template <int M>
@@ -86,6 +90,44 @@ bool Grammar<N>::removeUnitProd() {
 }
 
 template <int N>
+bool Grammar<N>::removeUnreachable() {
+    queue < string > q;
+    set < string > visited;
+    q.push(stV);
+    visited.insert(stV);
+    while (!q.empty()) {
+        string top = q.front();
+        q.pop();
+        for (int i = 0; i < prodRules[top].size(); i++) {
+            if (prodRules[top][i].size() < 3) continue;
+            for (int j = 0; j < prodRules[top][i].size() - 2; j++) {
+                if (prodRules[top][i][j] == '<' && prodRules[top][i][j + 2] == '>') {
+                    if (visited.find(prodRules[top][i].substr(j, 3)) == visited.end()) {
+                        visited.insert(prodRules[top][i].substr(j, 3));
+                        q.push(prodRules[top][i].substr(j, 3));
+                    }
+                }
+            }
+
+        }
+    }
+    map < string, vector < string > >::iterator it;
+    int i = 0;
+    vector < string > toDel;
+    bool res = false;
+    for (it = prodRules.begin(); it != prodRules.end(); it++, i++) {
+        if (visited.find(it -> first) == visited.end()) {
+            toDel.push_back(it -> first);
+            res = true;
+        }
+    }
+    for (int i = 0; i < toDel.size(); i++) {
+        prodRules.erase(prodRules.find(toDel[i]));
+    }
+    return res;
+}
+
+template <int N>
 void Grammar<N>::removeDuplicate() {
     map < string, vector < string > >::iterator it;
     for (it = prodRules.begin(); it != prodRules.end(); it++) {
@@ -131,11 +173,14 @@ istream& operator >> (istream& in, Grammar < N > &g) {
             right += g.rawProdRules[i][j];
         }
     }
+    g.stV = g.rawProdRules[0].substr(0, 3);
 }
 
 int main() {
     Grammar < 10000 > g; // 10000 means maximum number of production rules
     cin >> g;
+    g.removeUnreachable();
+    g.display();
 
     string s;
     cin >> s;
