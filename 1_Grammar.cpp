@@ -20,7 +20,9 @@ public:
     bool removeNullable(); // Returns true if something modified
     bool removeUnitProd(); // Returns true if something modified
     bool removeUnreachable();
+    bool removeUnterminatable();
     void removeDuplicate();
+    void removeInvalidProdRules(); // Remove prodoction rules with at least one undefined variable
 
     template <int M>
     friend istream& operator >> (istream& in, Grammar < M > &g);
@@ -128,6 +130,57 @@ bool Grammar<N>::removeUnreachable() {
 }
 
 template <int N>
+bool Grammar<N>::removeUnterminatable() {
+    bool flg = true;
+    bool res = false;
+    set < string > terminatable;
+    while (flg) {
+        flg = false;
+        map < string, vector < string > >::iterator it;
+        for (it = prodRules.begin(); it != prodRules.end(); it++) {
+            if (terminatable.find(it -> first) != terminatable.end()) {
+                continue;
+            }
+            for (int i = 0; i < it -> second.size(); i++) {
+
+                if (it -> second[i].size() < 3) {
+                    terminatable.insert(it -> first);
+                    flg = true;
+                    res = true;
+                    break;
+                }
+                bool isTerminatable = true;
+                for (int j = 0; j < it -> second[i].size() - 2; j++) {
+                    if (it -> second[i][j] == '<' && it -> second[i][j + 2] == '>') {
+                        if (terminatable.find(it -> second[i].substr(j, 3)) == terminatable.end()) {
+                            isTerminatable = false;
+                        }
+                    }
+                }
+                if (isTerminatable) {
+                    terminatable.insert(it -> first);
+                    flg = true;
+                    res = true;
+                    break;
+                }
+
+            }
+        }
+    }
+    map < string, vector < string > >::iterator it;
+    vector < string > toDel;
+    for (it = prodRules.begin(); it != prodRules.end(); it++) {
+        if (terminatable.find(it -> first) == terminatable.end()) {
+            toDel.push_back(it -> first);
+        }
+    }
+    for (int i = 0; i < toDel.size(); i++) {
+        prodRules.erase(prodRules.find(toDel[i]));
+    }
+    return res;
+}
+
+template <int N>
 void Grammar<N>::removeDuplicate() {
     map < string, vector < string > >::iterator it;
     for (it = prodRules.begin(); it != prodRules.end(); it++) {
@@ -138,6 +191,34 @@ void Grammar<N>::removeDuplicate() {
             itEnd = remove(it2 + 1, itEnd, *it2);
         }
         it -> second.erase(itEnd, it -> second.end());
+    }
+}
+
+template <int N>
+void Grammar<N>::removeInvalidProdRules() {
+    set < string > validVars;
+    map < string, vector < string > >::iterator it;
+    for (it = prodRules.begin(); it != prodRules.end(); it++) {
+        if (it -> second.size() > 0) {
+            validVars.insert(it -> first);
+        }
+    }
+    for (it = prodRules.begin(); it != prodRules.end(); it++) {
+        for (int i = it -> second.size() - 1; i >= 0; i--) {
+
+            if (it -> second[i].size() < 3) {
+                continue;
+            }
+            for (int j = 0; j < it -> second[i].size() - 2; j++) {
+                if (it -> second[i][j] == '<' && it -> second[i][j + 2] == '>') {
+                    if (validVars.find(it -> second[i].substr(j, 3)) == validVars.end()) {
+                        it -> second.erase(it -> second.begin() + i);
+                        break;
+                    }
+                }
+            }
+
+        }
     }
 }
 
@@ -179,7 +260,8 @@ istream& operator >> (istream& in, Grammar < N > &g) {
 int main() {
     Grammar < 10000 > g; // 10000 means maximum number of production rules
     cin >> g;
-    g.removeUnreachable();
+    g.removeUnterminatable();
+    g.removeInvalidProdRules();
     g.display();
 
     string s;
