@@ -6,8 +6,6 @@
 #include <queue>
 #include <set>
 
-#include <unistd.h>
-
 using namespace std;
 
 template <int N>
@@ -25,7 +23,8 @@ public:
     bool removeUnterminatable();
     void removeDuplicate();
     void removeInvalidProdRules(); // Remove prodoction rules with at least one undefined variable
-    void toCNF(); // (Chomskey Normal Form)
+    void simplify();
+    const string CYKMembership(const string& w);
 
     template <int M>
     friend istream& operator >> (istream& in, Grammar < M > &g);
@@ -225,7 +224,7 @@ void Grammar<N>::removeInvalidProdRules() {
 }
 
 template <int N>
-void Grammar<N>::toCNF() {
+void Grammar<N>::simplify() {
     bool flg = true;
     while (flg) {
         flg = false;
@@ -236,6 +235,69 @@ void Grammar<N>::toCNF() {
             continue;
         }
     }
+}
+
+template <int N>
+const string Grammar<N>::CYKMembership(const string& w) {
+
+    // Construct the table
+    set < string >** dp = new set < string >* [w.size()];
+    for (int i = 0; i < w.size(); i++) {
+        dp[i] = new set < string > [w.size()];
+    }
+
+    // Fill the table
+    for (int l = 1; l <= w.size(); l++) { // l = length of the range
+        for (int i = 0; i < 1 + w.size() - l; i++) { // range [i, i + l - 1]
+            int j = i + l - 1; // rightside position
+
+            // Base case: rightside includes of just terminals
+            map < string, vector < string > >::iterator it;
+            for (it = prodRules.begin(); it != prodRules.end(); it++) {
+                for (int k = 0; k < it -> second.size(); k++) {
+                    if (it -> second[k] == w.substr(i, l)) {
+                        dp[i][j].insert(it -> first);
+                        cout << "Found a terminate! " << "i:" << i << " j:" << j << " var:" << it -> first << endl;
+                    }
+                }
+            }
+
+            for (int k = i; k < j; k++) { // dp[i][k], dp[k + 1][j]
+                cout << "range i:" << i << " k:" << k << " j:" << j << endl;
+                set < string > targetProds;
+                set < string >::iterator it2;
+                set < string >::iterator it3;
+                for (it2 = dp[i][k].begin(); it2 != dp[i][k].end(); it2++) {
+                    for (it3 = dp[k + 1][j].begin(); it3 != dp[k + 1][j].end(); it3++) {
+                        string target1 = *it2;
+                        target1 += *it3;
+                        string target2 = *it2;
+                        target2 += w.substr(k + 1, j - k);
+                        string target3 = w.substr(i, k - i + 1);
+                        target3 += *it3;
+                        cout << " i,j:" << i << ' ' << j << " target1: " << target1 << " target2: " << target2 << " target3: " << target3 << endl;
+                        targetProds.insert(target1);
+                        targetProds.insert(target2);
+                        targetProds.insert(target3);
+                    }
+                }
+
+                // In the search of target productions among available production rules
+                map < string, vector < string > >::iterator it4;
+                for (it4 = prodRules.begin(); it4 != prodRules.end(); it4++) {
+                    for (int p = 0; p < it4 -> second.size(); p++) {
+                        if (targetProds.find(it4 -> second[p]) != targetProds.end()) {
+                            dp[i][j].insert(it4 -> first);
+                            cout << "target acceptable found: " << "i:" << i << " j:" << j << " var:" << it4 -> first << endl;
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
+    return dp[0][w.size() - 1].find(stV) != dp[0][w.size() - 1].end() ? "Accepted" : "Rejected" ;
 }
 
 template <int N>
@@ -276,9 +338,10 @@ istream& operator >> (istream& in, Grammar < N > &g) {
 int main() {
     Grammar < 10000 > g; // 10000 means maximum number of production rules
     cin >> g;
-    g.toCNF();
+    g.simplify();
     g.display();
 
     string s;
     cin >> s;
+    cout << g.CYKMembership(s);
 }
