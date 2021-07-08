@@ -58,8 +58,15 @@ bool Grammar<N>::removeNullable() {
                             if (it2 -> second[j].substr(k, 3) == it -> first) {
                                 it2 -> second.push_back(it2 -> second[j]);
                                 it2 -> second.back().erase(k, 3);
-                                if (it2 -> second.back().empty()) {
+                                if (it2 -> second.back() == it2 -> first) {
+                                    it2 -> second.pop_back();
+                                    //cout << "najoooooor" << it2 -> first << endl;
+                                } else if (it2 -> second.back().empty()) {
                                     it2 -> second.back() = "#";
+                                    if (it2 -> first == it -> first) {
+                                        it2 -> second.pop_back();
+                                        //cout << "firstttt" << it2 -> first << " " << it -> first << endl;
+                                     }
                                 }
                                 break;
                             }
@@ -229,6 +236,9 @@ void Grammar<N>::simplify() {
     bool flg = true;
     while (flg) {
         flg = false;
+        /*this -> display();
+        string tmp;
+        getline(cin, tmp);*/
         if (this -> removeNullable() || this -> removeUnitProd() || this -> removeUnreachable() || this -> removeUnterminatable()) {
             flg = true;
             this -> removeDuplicate();
