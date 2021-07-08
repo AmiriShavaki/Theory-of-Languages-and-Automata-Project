@@ -19,11 +19,12 @@ public:
     void display();
     bool removeNullable(); // Returns true if something modified
     bool removeUnitProd(); // Returns true if something modified
-    bool removeUnreachable();
-    bool removeUnterminatable();
+    bool removeUnreachable(); // Returns true if something modified
+    bool removeUnterminatable(); // Returns true if something modified
     void removeDuplicate();
     void removeInvalidProdRules(); // Remove prodoction rules with at least one undefined variable
     void simplify();
+    void toCNF();
     const string CYKMembership(const string& w);
 
     template <int M>
@@ -238,6 +239,77 @@ void Grammar<N>::simplify() {
 }
 
 template <int N>
+void Grammar<N>::toCNF() {
+
+    map < char, string > terVar;
+    string newVar; newVar += '<'; newVar += (char)33; newVar += '>';
+    map < string, vector < string > >::iterator it;
+    for (it = prodRules.begin(); it != prodRules.end(); it++) { // Assign production rules for each terminal
+        for (int i = 0; i < it -> second.size(); i++) {
+            if (it -> second[i].size() == 1) {
+                continue;
+            }
+            for (int j = 0; j < it -> second[i].size();) {
+                if (it -> second[i][j] == '<') {
+                    j += 3;
+                } else {
+                    if (terVar.find(it -> second[i][j]) == terVar.end()) {
+                        terVar[it -> second[i][j]] = newVar; //cout << "terVar " << it -> second[i][j] << ' ' << newVar << endl;
+                        newVar[1]++;
+                    }
+                    j++;
+                }
+            }
+        }
+    }
+    map < char, string >::iterator it2;
+    for (it2 = terVar.begin(); it2 != terVar.end(); it2++) {
+        string rightSide; rightSide += it2 -> first;
+        for (it = prodRules.begin(); it != prodRules.end(); it++) {
+            for (int i = 0; i < it -> second.size(); i++) {
+                if (it -> second[i].size() == 1) {
+                    continue;
+                }
+                vector < int > insertPos;
+                for (int j = 0; j < it -> second[i].size();) {
+                    if (it -> second[i][j] == '<') {
+                        j += 3;
+                    } else {
+                        if (it2 -> first == it -> second[i][j]) {
+                            insertPos.push_back(j);
+                        }
+                        j++;
+                    }
+                }
+                for (int j = insertPos.size() - 1; j >= 0; j--) {
+                    it -> second[i].erase(insertPos[j], 1);
+                    it -> second[i].insert(insertPos[j], it2 -> second);
+                }
+            }
+        }
+        prodRules[it2 -> second].push_back(rightSide);
+    }
+
+    // Reduce right side of production rules to just two Variables (not less not more)
+    map < string, string > newProd;
+    for (it = prodRules.begin(); it != prodRules.end(); it++) {
+        for (int i = 0; i < it -> second.size(); i++) {
+            while (it -> second[i].size() > 6) {
+                if (newProd.find(it -> second[i].substr(0, 6)) == newProd.end()) {
+                    newProd[it -> second[i].substr(0, 6)] = newVar;
+                    prodRules[newVar].push_back(it -> second[i].substr(0, 6));
+                    newVar[1]++;
+                }
+                string tmp = it -> second[i].substr(0, 6);
+                it -> second[i].erase(0, 6);
+                it -> second[i].insert(0, newProd[tmp]);
+            }
+        }
+    }
+
+}
+
+template <int N>
 const string Grammar<N>::CYKMembership(const string& w) {
 
     // Construct the table
@@ -257,13 +329,13 @@ const string Grammar<N>::CYKMembership(const string& w) {
                 for (int k = 0; k < it -> second.size(); k++) {
                     if (it -> second[k] == w.substr(i, l)) {
                         dp[i][j].insert(it -> first);
-                        cout << "Found a terminate! " << "i:" << i << " j:" << j << " var:" << it -> first << endl;
+                        //cout << "Found a terminate! " << "i:" << i << " j:" << j << " var:" << it -> first << endl;
                     }
                 }
             }
 
             for (int k = i; k < j; k++) { // dp[i][k], dp[k + 1][j]
-                cout << "range i:" << i << " k:" << k << " j:" << j << endl;
+                //cout << "range i:" << i << " k:" << k << " j:" << j << endl;
                 set < string > targetProds;
                 set < string >::iterator it2;
                 set < string >::iterator it3;
@@ -275,7 +347,7 @@ const string Grammar<N>::CYKMembership(const string& w) {
                         target2 += w.substr(k + 1, j - k);
                         string target3 = w.substr(i, k - i + 1);
                         target3 += *it3;
-                        cout << " i,j:" << i << ' ' << j << " target1: " << target1 << " target2: " << target2 << " target3: " << target3 << endl;
+                        //cout << " i,j:" << i << ' ' << j << " target1: " << target1 << " target2: " << target2 << " target3: " << target3 << endl;
                         targetProds.insert(target1);
                         targetProds.insert(target2);
                         targetProds.insert(target3);
@@ -288,7 +360,7 @@ const string Grammar<N>::CYKMembership(const string& w) {
                     for (int p = 0; p < it4 -> second.size(); p++) {
                         if (targetProds.find(it4 -> second[p]) != targetProds.end()) {
                             dp[i][j].insert(it4 -> first);
-                            cout << "target acceptable found: " << "i:" << i << " j:" << j << " var:" << it4 -> first << endl;
+                            //cout << "target acceptable found: " << "i:" << i << " j:" << j << " var:" << it4 -> first << endl;
                         }
                     }
                 }
@@ -339,7 +411,9 @@ int main() {
     Grammar < 10000 > g; // 10000 means maximum number of production rules
     cin >> g;
     g.simplify();
-    g.display();
+    //g.display();
+    g.toCNF();
+    //g.display();
 
     string s;
     cin >> s;
