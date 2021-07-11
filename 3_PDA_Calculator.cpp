@@ -1,5 +1,4 @@
-# define M_PI           3.14
-# define M_PI_2         1.57
+# define PI_2       1.57
 
 #include <iostream>
 #include <string>
@@ -546,6 +545,16 @@ const string calc(vector < string > exp) {
             } else if (PF[i] == "cos") {
                 res = cos(a);
             } else if (PF[i] == "tan") {
+                double b = 0;
+                while (b > a) {
+                    b -= PI_2;
+                }
+                while (b < a) {
+                    b += PI_2;
+                }
+                if (b == a) {
+                    return "INVALID";
+                }
                 res = tan(a);
             } else if (PF[i] == "ln") {
                 if (a <= 0) {
@@ -632,6 +641,21 @@ vector < string > split(string exp) {
     return res;
 }
 
+const bool checkBadSpaces(const string exp) {
+    bool flg = false;
+    for (int i = 0; i < exp.size(); i++) {
+        if (flg && i > 0 && exp[i - 1] == ' ' && isdigit(exp[i])) {
+            return true;
+        }
+        if (isdigit(exp[i])) {
+            flg = true;
+        } else if (exp[i] != ' ') {
+            flg = false;
+        }
+    }
+    return false;
+}
+
 int main() {
     precedence['+'] = 1;
     precedence['-'] = 1;
@@ -659,6 +683,10 @@ int main() {
 
     string exp;
     getline(cin, exp);
+    if (checkBadSpaces(exp)) {
+        puts("INVALID");
+        return 0;
+    }
     exp = removeSpaces(exp);
     if (!g.CYKMembership(exp)) {
         puts("INVALID");
