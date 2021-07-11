@@ -550,7 +550,7 @@ vector < string > split(string exp) {
                 part.clear();
                 part += exp[i];
             }
-        } else if (exp[i] == '-' && (i == 0 || precedence.find(exp[i - 1]) != precedence.end())) {
+        } else if (exp[i] == '-' && (i == 0 || precedence.find(exp[i - 1]) != precedence.end() || exp[i - 1] == '(')) {
             flg = true;
             if (!part.empty()) {
                 res.push_back(part);
@@ -563,6 +563,9 @@ vector < string > split(string exp) {
             }
             part.clear();
             part += exp[i];
+            if (exp[i] == '(') {
+                f.push_back("identity");
+            }
         } else {
             part += '.';
         }
@@ -595,6 +598,9 @@ int main() {
     if (!g.CYKMembership(exp)) {
         puts("INVALID");
         return 0;
+    }
+    for (int i = 0; i < f.size(); i++) {
+        cout << f[i] << endl;
     }
     const string ans = calc(split(exp));
     if (ans == "INVALID") {
