@@ -1,5 +1,5 @@
-# define M_PI           3.14159265358
-# define M_PI_2         1.57079632679
+# define M_PI           3.14
+# define M_PI_2         1.57
 
 #include <iostream>
 #include <string>
@@ -21,8 +21,6 @@ template <class T>
 int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
-
-
 
 template <int N>
 class Grammar {
@@ -557,19 +555,16 @@ const string calc(vector < string > exp) {
             } else if (PF[i] == "exp") {
                 res = std::exp(a);
             } else if (PF[i] == "asin") {
-                if (a < -M_PI_2 || a > M_PI_2) {
+                if (a < -1 || a > 1) {
                     return "INVALID";
                 }
                 res = asin(a);
             } else if (PF[i] == "acos") {
-                if (a < 0 || a > M_PI) {
+                if (a < -1 || a > 1) {
                     return "INVALID";
                 }
                 res = acos(a);
             } else if (PF[i] == "atan") {
-                if (a < -M_PI_2 || a > M_PI_2) {
-                    return "INVALID";
-                }
                 res = atan(a);
             } else if (PF[i] == "sgn") {
                 res = sgn(a);
