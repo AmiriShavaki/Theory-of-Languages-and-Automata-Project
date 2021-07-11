@@ -1,3 +1,6 @@
+# define M_PI           3.14159265358
+# define M_PI_2         1.57079632679
+
 #include <iostream>
 #include <string>
 #include <map>
@@ -13,6 +16,13 @@
 #include <cstdio>
 
 using namespace std;
+
+template <class T>
+int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
+
 
 template <int N>
 class Grammar {
@@ -441,7 +451,7 @@ vector < string > postFix(vector < string > exp) {
     for (int i = 0; i < exp.size(); i++) {
 
         // If exp[i] was an operand
-        if (isdigit(exp[i][0]) || exp[i].size() > 1) {
+        if (isdigit(exp[i][0]) || exp[i].size() > 1 && !isalpha(exp[i][0])) {
             res.push_back(exp[i]);
         }
 
@@ -460,7 +470,7 @@ vector < string > postFix(vector < string > exp) {
         }
 
         // If exp[i] was an operator
-        if (precedence.find(exp[i][0]) != precedence.end() && exp[i].size() == 1) {
+        if (precedence.find(exp[i][0]) != precedence.end() && (exp[i].size() == 1 || isalpha(exp[i][0]))) {
             if (stk.empty() || stk.top() == "(") {
                 stk.push(exp[i]);
             } else {
@@ -488,11 +498,11 @@ const string calc(vector < string > exp) {
     for (int i = 0; i < PF.size(); i++) {
 
         // If PF[i] was an operand
-        if (isdigit(PF[i][0]) || PF[i].size() > 1) {
+        if (isdigit(PF[i][0]) || PF[i].size() > 1 && !isalpha(PF[i][0])) {
             stk.push(PF[i]);
         }
 
-        // If exp[i] was an operator
+        // If exp[i] was an binary operator
         if (precedence.find(PF[i][0]) != precedence.end() && PF[i].size() == 1) {
             double a = strtod(stk.top().data(), NULL);
             stk.pop();
@@ -523,6 +533,59 @@ const string calc(vector < string > exp) {
             strRes << res;
             stk.push(strRes.str());
         }
+        // If exp[i] was an unary operator
+        if (precedence.find(PF[i][0]) != precedence.end() && isalpha(PF[i][0])) {
+            double a = strtod(stk.top().data(), NULL);
+            stk.pop();
+            double res;
+            if (PF[i] == "sqrt") {
+                if (a < 0) {
+                    return "INVALID";
+                }
+                res = sqrt(a);
+            } else if (PF[i] == "sin") {
+                res = sin(a);
+            } else if (PF[i] == "cos") {
+                res = cos(a);
+            } else if (PF[i] == "tan") {
+                res = tan(a);
+            } else if (PF[i] == "ln") {
+                if (a <= 0) {
+                    return "INVALID";
+                }
+                res = log(a);
+            } else if (PF[i] == "exp") {
+                res = std::exp(a);
+            } else if (PF[i] == "asin") {
+                if (a < -M_PI_2 || a > M_PI_2) {
+                    return "INVALID";
+                }
+                res = asin(a);
+            } else if (PF[i] == "acos") {
+                if (a < 0 || a > M_PI) {
+                    return "INVALID";
+                }
+                res = acos(a);
+            } else if (PF[i] == "atan") {
+                if (a < -M_PI_2 || a > M_PI_2) {
+                    return "INVALID";
+                }
+                res = atan(a);
+            } else if (PF[i] == "sgn") {
+                res = sgn(a);
+            } else if (PF[i] == "abs") {
+                res = abs(a);
+            } else if (PF[i] == "sinh") {
+                res = sinh(a);
+            } else if (PF[i] == "cosh") {
+                res = cosh(a);
+            } else if (PF[i] == "tanh") {
+                res = tanh(a);
+            }
+            stringstream strRes;
+            strRes << res;
+            stk.push(strRes.str());
+        }
     }
     return stk.top();
 }
@@ -537,7 +600,11 @@ vector < string > split(string exp) {
             fTmp += exp[i++];
         }
         if (!fTmp.empty()) {
-            f.push_back(fTmp);
+            if (!part.empty()) {
+                res.push_back(part);
+            }
+            part.clear();
+            part += fTmp;
         }
         if (isdigit(exp[i])) {
             if (i > 0 && (isdigit(exp[i - 1]) || exp[i - 1] == '.' || flg)) {
@@ -563,9 +630,6 @@ vector < string > split(string exp) {
             }
             part.clear();
             part += exp[i];
-            if (exp[i] == '(') {
-                f.push_back("identity");
-            }
         } else {
             part += '.';
         }
@@ -579,6 +643,12 @@ int main() {
     precedence['*'] = 2;
     precedence['/'] = 2;
     precedence['^'] = 3;
+    precedence['s'] = 4;
+    precedence['c'] = 4;
+    precedence['t'] = 4;
+    precedence['l'] = 4;
+    precedence['a'] = 4;
+    precedence['e'] = 4;
 
     Grammar < 10000 > g; // 10000 means maximum number of production rules
     stringstream in;
@@ -599,9 +669,7 @@ int main() {
         puts("INVALID");
         return 0;
     }
-    for (int i = 0; i < f.size(); i++) {
-        cout << f[i] << endl;
-    }
+
     const string ans = calc(split(exp));
     if (ans == "INVALID") {
         puts("INVALID");
